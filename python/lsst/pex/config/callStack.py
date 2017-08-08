@@ -31,19 +31,21 @@ import linecache
 
 
 def getCallerFrame(relative=0):
-    """Retrieve the frame for the caller
-
-    By "caller", we mean our user's caller.
+    """Get the frame for the user's caller.
 
     Parameters
     ----------
-    relative : `int`, non-negative
-        Number of frames above the caller to retrieve.
+    relative : `int`, optional
+        Number of frames (0 or more) above the caller to retrieve. Default is 0.
 
     Returns
     -------
     frame : `__builtin__.Frame`
         Frame for the caller.
+
+    Notes
+    -----
+    This function is excluded from the frame.
     """
     frame = inspect.currentframe().f_back.f_back  # Our caller's caller
     for ii in range(relative):
@@ -52,14 +54,12 @@ def getCallerFrame(relative=0):
 
 
 def getStackFrame(relative=0):
-    """Retrieve the stack frame for the caller
-
-    By "caller", we mean our user's caller.
+    """Get the `~lsst.pex.config.StackFrame` for the user's caller.
 
     Parameters
     ----------
-    relative : `int`, non-negative
-        Number of frames above the caller to retrieve.
+    relative : `int`, optional
+        Number of frames (0 or more) above the caller to retrieve.
 
     Returns
     -------
@@ -71,11 +71,7 @@ def getStackFrame(relative=0):
 
 
 class StackFrame(object):
-    """A single element of the stack trace
-
-    This differs slightly from the standard system mechanisms for
-    getting a stack trace by the fact that it does not look up the
-    source code until it is absolutely necessary, reducing the I/O.
+    """A single element of the stack trace.
 
     Parameters
     ----------
@@ -85,11 +81,21 @@ class StackFrame(object):
         Line number of file being executed.
     function : `str`
         Function name being executed.
-    content : `str` or `None`
-        The actual content being executed. If not provided, it will be
-        loaded from the file.
+    content : `str`, optional
+        The actual content being executed. If not provided, it will be loaded from the file.
+
+    Notes
+    -----
+    This differs slightly from the standard system mechanisms for getting a stack trace by the fact that it
+    does not look up the source code until it is absolutely necessary, reducing the I/O.
+
+    See also
+    --------
+    getStackFrame
     """
-    _STRIP = "/python/lsst/"  # String to strip from the filename
+
+    """String to strip from the ``filename`` in the constructor."""
+    _STRIP = "/python/lsst/"
 
     def __init__(self, filename, lineno, function, content=None):
         loc = filename.rfind(self._STRIP)
@@ -102,9 +108,7 @@ class StackFrame(object):
 
     @property
     def content(self):
-        """Getter for content being executed
-
-        Load from file on demand.
+        """Content being executed (loaded on demand) (`str`).
         """
         if self._content is None:
             self._content = linecache.getline(self.filename, self.lineno).strip()
@@ -112,10 +116,7 @@ class StackFrame(object):
 
     @classmethod
     def fromFrame(cls, frame):
-        """Construct from a Frame object
-
-        inspect.currentframe() provides a Frame object. This is
-        a convenience constructor to interpret that Frame object.
+        """Construct from a Frame object.
 
         Parameters
         ----------
@@ -124,8 +125,16 @@ class StackFrame(object):
 
         Returns
         -------
-        output : `StackFrame`
-            Constructed object.
+        stackFrame : `StackFrame`
+            A `StackFrame` instance.
+
+        Examples
+        --------
+        `inspect.currentframe` provides a Frame object. This is a convenience constructor to interpret that
+        Frame object.
+
+        >>> import inspect
+        >>> stackFrame = StackFrame.fromFrame(inspect.currentframe())
         """
         filename = frame.f_code.co_filename
         lineno = frame.f_lineno
@@ -140,8 +149,9 @@ class StackFrame(object):
 
         Parameters
         ----------
-        full : `bool`
-            Print full details, including content being executed?
+        full : `bool`, optional
+            If `True`, output includes the conentent (`StackFrame.content`) being executed. Default
+            is `False`.
 
         Returns
         -------
@@ -157,10 +167,6 @@ class StackFrame(object):
 def getCallStack(skip=0):
     """Retrieve the call stack for the caller
 
-    By "caller", we mean our user's caller - we don't include ourselves
-    or our caller.
-
-    The result is ordered with the most recent frame last.
 
     Parameters
     ----------
@@ -170,7 +176,11 @@ def getCallStack(skip=0):
     Returns
     -------
     output : `list` of `StackFrame`
-        The call stack.
+        The call stack. The `list` is ordered with the most recent frame to last.
+
+    Notes
+    -----
+    This function is excluded from the call stack.
     """
     frame = getCallerFrame(skip + 1)
     stack = []
