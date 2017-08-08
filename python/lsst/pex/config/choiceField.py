@@ -29,11 +29,26 @@ __all__ = ["ChoiceField"]
 
 
 class ChoiceField(Field):
-    """
-    Defines a Config Field which allows only a set of values
-    All allowed must be of the same type.
-    Allowed values should be provided as a dict of value, doc string pairs
+    """Configuration `lsst.pex.config.Field` that allows a defined set of values.
 
+    Parameters
+    ----------
+    doc : `str`
+        Documentation string that describes the configuration field.
+    dtype : class
+        The type of the field's choices. For example, `str` or `int`.
+    allowed : `dict`
+        Keys are the allowed choices (of ``dtype``-type). Values are documentation strings (`str`) describing
+        each choice.
+    default : ``dtype``-dtype, optional
+        Default value of this field.
+    optional : `bool`, optional
+        If `True`, this configuration `~lsst.pex.config.Field` is *optional*. Default is `True`.
+
+    Notes
+    -----
+    Use ``ChoiceField`` when a configuration can only take one of a pre-defined set of values. Each choice
+    must be of the same type.
     """
     def __init__(self, doc, dtype, allowed, default=None, optional=True):
         self.allowed = dict(allowed)
