@@ -42,8 +42,7 @@ __all__ = ("Config", "Field", "FieldValidationError")
 
 
 def _joinNamePath(prefix=None, name=None, index=None):
-    """
-    Utility function for generating nested configuration names
+    """Generate nested configuration names.
     """
     if not prefix and not name:
         raise ValueError("Invalid name: cannot be None")
@@ -59,9 +58,20 @@ def _joinNamePath(prefix=None, name=None, index=None):
 
 
 def _autocast(x, dtype):
-    """
-    If appropriate perform type casting of value x to type dtype,
-    otherwise return the original value x
+    """Cast a value to a type, if appropriate.
+
+    Parameters
+    ----------
+    x : object
+        A value.
+    dtype : class
+        Data type, such as `float`, `int`, or `str`.
+
+    Returns
+    -------
+    values : object
+        If appropriate, the returned value is ``x`` cast to the given type ``dtype``. If the cast cannot
+        be performed the original value of ``x`` is returned.
     """
     if dtype == float and isinstance(x, int):
         return float(x)
@@ -73,11 +83,16 @@ def _autocast(x, dtype):
 
 
 def _typeStr(x):
-    """
-    Utility function to generate a fully qualified type name.
+    """Generate a fully-qualified type name.
 
-    This is used primarily in writing config files to be
-    executed later upon 'load'.
+    Returns
+    -------
+    typeStr : `str`
+        Fully-qualified type name.
+
+    Notes
+    -----
+    This is used primarily in writing config files to be executed later upon 'load'.
     """
     if hasattr(x, '__module__') and hasattr(x, '__name__'):
         xtype = x
@@ -90,13 +105,15 @@ def _typeStr(x):
 
 
 class ConfigMeta(type):
-    """A metaclass for Config
+    """Metaclass for `lsst.pex.config.Config`.
 
-    Adds a dictionary containing all Field class attributes
-    as a class attribute called '_fields', and adds the name of each field as
-    an instance variable of the field itself (so you don't have to pass the
-    name of the field to the field constructor).
+    Notes
+    -----
+    Adds a dictionary containing all Field class attributes as a class attribute called ``_fields``, and adds
+    the name of each field as an instance variable of the field itself (so you don't have to pass the name of
+    the field to the field constructor).
     """
+
     def __init__(self, name, bases, dict_):
         type.__init__(self, name, bases, dict_)
         self._fields = {}
@@ -126,15 +143,30 @@ class ConfigMeta(type):
 
 
 class FieldValidationError(ValueError):
+    """Exception class which holds additional information, as attributes, useful for debugging
+    `lsst.pex.config.Config` errors.
     """
-    Custom exception class which holds additional information useful to
-    debuggin Config errors:
-    - fieldType: type of the Field which incurred the error
-    - fieldName: name of the Field which incurred the error
-    - fullname: fully qualified name of the Field instance
-    - history: full history of all changes to the Field instance
-    - fieldSource: file and line number of the Field definition
+
+    """Type of the `~lsst.pex.config.Field` that incurred the error (class)."""
+    fieldType = None
+
+    """Name of the `~lsst.pex.config.Field` instance that incurred the error (str).
+
+    See also
+    --------
+    lsst.pex.config.Field.name
     """
+    fieldName = None
+
+    """Fully-qualified name of the `~lsst.pex.config.Field` instance (`str`)."""
+    fullname = None
+
+    """Full history of all changes to the `~lsst.pex.config.Field` instance."""
+    history = None
+
+    """File and line number of the `~lsst.pex.config.Field` definition."""
+    fieldSource = None
+
     def __init__(self, field, config, msg):
         self.fieldType = type(field)
         self.fieldName = field.name
@@ -151,30 +183,47 @@ class FieldValidationError(ValueError):
 
 
 class Field(object):
-    """A field in a a Config.
+    """Configuration field.
 
-    Instances of Field should be class attributes of Config subclasses:
-    Field only supports basic data types (int, float, complex, bool, str)
+    Parameters
+    ----------
+    doc : `str`
+        Documentation string for the field.
+    dtype : class
+        Data type for the field.
+    default : object, optional
+        Default value for the field.
+    check : callable, optional
+        A callable to be called with the field value that returns `False` if the value is invalid. More
+        complex inter-field validation can be written as part of the `lsst.pex.config.Config.validate`
+        method.
+    optional : `bool`, optional
+        When `False`, `lsst.pex.config.Config.validate` will fail if the field's value is `None`.
 
-    class Example(Config):
-        myInt = Field(int, "an integer field!", default=0)
+    Raises
+    ------
+    ValueError
+        Raised when the ``dtype`` parameter is not one of the supported types (see `Field.supportedTypes`).
+
+    Notes
+    -----
+    Field only supports basic data types (`int`, `float`, `complex`, `bool`, `str`, `unicode`).
+    See `Field.supportedTypes`.
+
+    Examples
+    --------
+    Instances of ``Field`` should be used as class attributes of `lsst.pex.config.Config` subclasses:
+
+    >>> class Example(Config):
+    >>>     myInt = Field(int, "an integer field!", default=0)
     """
+
+    """Supported data types for field values."""
+    supportedTypes = set((str, unicode, basestring, oldStringType, bool, float, int, complex))
     # Must be able to support str and future str as we can not guarantee that
     # code will pass in a future str type on Python 2
-    supportedTypes = set((str, unicode, basestring, oldStringType, bool, float, int, complex))
 
     def __init__(self, doc, dtype, default=None, check=None, optional=False):
-        """Initialize a Field.
-
-        dtype ------ Data type for the field.
-        doc -------- Documentation for the field.
-        default ---- A default value for the field.
-        check ------ A callable to be called with the field value that returns
-                     False if the value is invalid.  More complex inter-field
-                     validation can be written as part of Config validate()
-                     method; this will be ignored if set to None.
-        optional --- When False, Config validate() will fail if value is None
-        """
         if dtype not in self.supportedTypes:
             raise ValueError("Unsupported Field dtype %s" % _typeStr(dtype))
 
@@ -186,9 +235,7 @@ class Field(object):
         self._setup(doc=doc, dtype=dtype, default=default, check=check, optional=optional, source=source)
 
     def _setup(self, doc, dtype, default, check, optional, source):
-        """
-        Convenience function provided to simplify initialization of derived
-        Field types
+        """Initialization helper.
         """
         self.dtype = dtype
         self.doc = doc
@@ -199,42 +246,81 @@ class Field(object):
         self.source = source
 
     def rename(self, instance):
-        """
-        Rename an instance of this field, not the field itself.
-        This is invoked by the owning config object and should not be called
-        directly
+        """Rename an instance of this field.
 
-        Only useful for fields which hold sub-configs.
-        Fields which hold subconfigs should rename each sub-config with
-        the full field name as generated by _joinNamePath
+        Parameters
+        ----------
+        instance
+            Unknown.
+
+        Note
+        ----
+        This is invoked by the owning `lsst.pex.config.Config` object and should not be called directly.
+
+        Renaming is only relevant for `~lsst.pex.config.Field`\ s that hold subconfigs.
+        `~lsst.pex.config.Fields` that hold subconfigs should rename each subconfig with the full field name
+        as generated by `lsst.pex.config.config._joinNamePath`.
         """
         pass
 
     def validate(self, instance):
-        """
-        Base validation for any field.
-        Ensures that non-optional fields are not None.
-        Ensures type correctness
-        Ensures that user-provided check function is valid
-        Most derived Field types should call Field.validate if they choose
-        to re-implement validate
+        """Validate the field.
+
+        Parameters
+        ----------
+        instance
+            Unknown.
+
+        Raises
+        ------
+        lsst.pex.config.FieldValidationError
+            Raised if verification fails.
+
+        Notes
+        -----
+        This method provides basic validation:
+
+        - Ensures that non-optional fields are not `None`.
+        - Ensures type correctness.
+        - Ensures that the user-provided ``check`` function is valid.
+
+        FIXME: is type checking and validation of ``check`` actually performed?
+
+        Most `lsst.pex.config.Field` subclasses should call `lsst.pex.config.field.Field.validate` if they
+        choose to re-implement `~lsst.pex.config.field.Field.validate`.
         """
         value = self.__get__(instance)
         if not self.optional and value is None:
             raise FieldValidationError(self, instance, "Required value cannot be None")
 
     def freeze(self, instance):
-        """
-        Make this field read-only.
-        Only important for fields which hold sub-configs.
-        Fields which hold subconfigs should freeze each sub-config.
+        """Make this field read-only.
+
+        Parameters
+        ----------
+        instance
+            Unknown.
+
+        Notes
+        -----
+        Freezing is only relevant for fields that hold subconfigs. Fields which hold subconfigs should freeze
+        each subconfig.
+
+        **Subclasses should implement this method.**
         """
         pass
 
     def _validateValue(self, value):
-        """
-        Validate a value that is not None
+        """Validate a value.
 
+        Parameters
+        ----------
+        instance
+            Unknown.
+
+        Notes
+        -----
+        FIXME: is this statement true?
         This is called from __set__
         This is not part of the Field API. However, simple derived field types
             may benifit from implementing _validateValue
@@ -251,12 +337,21 @@ class Field(object):
             raise ValueError(msg)
 
     def save(self, outfile, instance):
-        """
-        Saves an instance of this field to file.
-        This is invoked by the owning config object, and should not be called
-        directly
+        """Save an instance of this field to a file.
 
-        outfile ---- an open output stream.
+        Parameters
+        ----------
+        outfile : file-like object
+            A writeable field handle.
+        instance
+            Unkown.
+
+        Notes
+        -----
+        This is invoked by the owning `lsst.pex.config.Config` object and should not be called directly.
+
+        The output consists of the documentation string (`lsst.pex.config.Field.doc`), prefixed with a
+        ``# `` (to make a Python comment). The second line is formatted as ``{fullname}={value}``.
         """
         value = self.__get__(instance)
         fullname = _joinNamePath(instance._name, self.name)
@@ -270,17 +365,30 @@ class Field(object):
             outfile.write(u"{}\n{}={!r}\n\n".format(doc, fullname, value))
 
     def toDict(self, instance):
-        """
-        Convert the field value so that it can be set as the value of an item
-        in a dict.
-        This is invoked by the owning config object and should not be called
-        directly
+        """Convert the field value so that it can be set as the value of an item in a `dict`.
 
-        Simple values are passed through. Complex data structures must be
-        manipulated. For example, a field holding a sub-config should, instead
-        of the subconfig object, return a dict where the keys are the field
-        names in the subconfig, and the values are the field values in the
+        Parameters
+        ----------
+        instance
+            Unknown.
+
+        Returns
+        -------
+        value
+            Unkown.
+
+        Notes
+        -----
+        This is invoked by the owning `lsst.pex.config.Config` object and should not be called directly.
+
+        Simple values are passed through. Complex data structures must be manipulated. For example, a
+        `~lsst.pex.config.Field` holding a subconfig should, instead of the subconfig object, return a `dict`
+        where the keys are the field names in the subconfig, and the values are the field values in the
         subconfig.
+
+        See also
+        --------
+        lsst.pex.config.Field.toDict
         """
         return self.__get__(instance)
 
@@ -304,26 +412,40 @@ class Field(object):
             return instance._storage[self.name]
 
     def __set__(self, instance, value, at=None, label='assignment'):
-        """
-        Describe how attribute setting should occur on the config instance.
-        This is invoked by the owning config object and should not be called
-        directly
+        """Set an attribute on the config instance.
 
-        Derived Field classes may need to override the behavior. When overriding
-        __set__, Field authors should follow the following rules:
-        * Do not allow modification of frozen configs
-        * Validate the new value *BEFORE* modifying the field. Except if the
-            new value is None. None is special and no attempt should be made to
-            validate it until Config.validate is called.
-        * Do not modify the Config instance to contain invalid values.
-        * If the field is modified, update the history of the field to reflect the
-            changes
+        Parameters
+        ----------
+        instance
+            Unknown.
+        value
+            Unknown.
+        at : optional
+            Unkown.
+        label : `str`, optional
+            Unknown.
 
-        In order to decrease the need to implement this method in derived Field
-        types, value validation is performed in the method _validateValue. If
-        only the validation step differs in the derived Field, it is simpler to
-        implement _validateValue than to re-implement __set__. More complicated
-        behavior, however, may require a reimplementation.
+        Notes
+        -----
+        This method is invoked by the owning `lsst.pex.config.Config` object and should not be called
+        directly.
+
+        Derived `~lsst.pex.config.Field` classes may need to override the behavior. When overriding
+        ``__set__``, `~lsst.pex.config.Field` authors should follow the following rules:
+
+        - Do not allow modification of frozen configs.
+        - Validate the new value **before** modifying the field. Except if the new value is `None`. `None`
+          is special and no attempt should be made to validate it until `lsst.pex.config.Config.validate` is
+          called.
+        - Do not modify the `~lsst.pex.config.Config` instance to contain invalid values.
+        - If the field is modified, update the history of the `lsst.pex.config.field.Field` to reflect the
+          changes.
+
+        In order to decrease the need to implement this method in derived `~lsst.pex.config.Field` types,
+        value validation is performed in the `lsst.pex.config.Field._validateValue`. If only the validation
+        step differs in the derived `~lsst.pex.config.Field`, it is simpler to implement
+        `lsst.pex.config.Field._validateValue` than to reimplement ``__set__``. More complicated
+        behavior, however, may require reimplementation.
         """
         if instance._frozen:
             raise FieldValidationError(self, instance, "Cannot modify a frozen Config")
@@ -342,29 +464,52 @@ class Field(object):
         history.append((value, at, label))
 
     def __delete__(self, instance, at=None, label='deletion'):
-        """
-        Describe how attribute deletion should occur on the Config instance.
-        This is invoked by the owning config object and should not be called
-        directly
+        """Delete an attribute from a `lsst.pex.config.Config` instance.
+
+        Parameters
+        ----------
+        instance
+            Unknown.
+        at : optional
+            Unkown.
+        label : `str`, optional
+            Unknown.
+
+        Notes
+        -----
+        This is invoked by the owning `~lsst.pex.config.Config` object and should not be called directly.
         """
         if at is None:
             at = getCallStack()
         self.__set__(instance, None, at=at, label=label)
 
     def _compare(self, instance1, instance2, shortcut, rtol, atol, output):
-        """Helper function for Config.compare; used to compare two fields for equality.
+        """Compare two fields for equality.
 
-        Must be overridden by more complex field types.
+        Parameters
+        ----------
+        instance1 : `lsst.pex.config.Config`
+            Left-hand side config instance to compare.
+        instance2 : `lsst.pex.config.Config`
+            Right-hand side config instance to compare.
+        shortcut : `bool`, optional
+            **Unused.**
+        rtol : `float`, optional
+            Relative tolerance for floating point comparisons.
+        atol : `float`, optional
+            Absolute tolerance for floating point comparisons.
+        output : callable, optional
+            A callable that takes a string, used (possibly repeatedly) to report inequalities.
 
-        @param[in] instance1  LHS Config instance to compare.
-        @param[in] instance2  RHS Config instance to compare.
-        @param[in] shortcut   If True, return as soon as an inequality is found.
-        @param[in] rtol       Relative tolerance for floating point comparisons.
-        @param[in] atol       Absolute tolerance for floating point comparisons.
-        @param[in] output     If not None, a callable that takes a string, used (possibly repeatedly)
-                              to report inequalities.
+        Notes
+        -----
+        This method must be overridden by more complex field types.
 
-        Floating point comparisons are performed by numpy.allclose; refer to that for details.
+        FIXME why is this method calling compareScalars rather than compareConfigs?
+
+        See also
+        --------
+        lsst.pex.config.compareScalars
         """
         v1 = getattr(instance1, self.name)
         v2 = getattr(instance2, self.name)
@@ -376,22 +521,29 @@ class Field(object):
 
 
 class RecordingImporter(object):
-    """An Importer (for sys.meta_path) that records which modules are being imported.
+    """Importer (for `sys.meta_path`) that records which modules are being imported.
 
-    Objects also act as Context Managers, so you can:
-        with RecordingImporter() as importer:
-            import stuff
-        print("Imported: " + importer.getModules())
-    This ensures it is properly uninstalled when done.
-
+    Notes
+    -----
     This class makes no effort to do any importing itself.
+
+    Use this class as a context manager to ensure it is properly uninstalled when done. See *Examples*.
+
+
+    Examples
+    --------
+    Objects also act as context managers. For example:
+
+    >>> with RecordingImporter() as importer:
+    >>>     # import stuff
+    >>>     import numpy as np
+    >>> print("Imported: " + importer.getModules())
     """
+
     def __init__(self):
-        """Create and install the Importer"""
         self._modules = set()
 
     def __enter__(self):
-
         self.origMetaPath = sys.meta_path
         sys.meta_path = [self] + sys.meta_path
         return self
@@ -401,65 +553,113 @@ class RecordingImporter(object):
         return False  # Don't suppress exceptions
 
     def uninstall(self):
-        """Uninstall the Importer"""
+        """Uninstall the Importer."""
         sys.meta_path = self.origMetaPath
 
     def find_module(self, fullname, path=None):
         """Called as part of the 'import' chain of events.
-
-        We return None because we don't do any importing.
         """
         self._modules.add(fullname)
+        # Return None because we don't do any importing.
         return None
 
     def getModules(self):
-        """Return the set of modules that were imported."""
+        """Get the set of modules that were imported.
+
+        Returns
+        -------
+        modules
+            Unkown.
+        """
         return self._modules
 
 
 class Config(with_metaclass(ConfigMeta, object)):
-    """Base class for control objects.
+    """Base configuration class.
 
-    A Config object will usually have several Field instances as class
-    attributes; these are used to define most of the base class behavior.
-    Simple derived class should be able to be defined simply by setting those
-    attributes.
+    Notes
+    -----
+    A Config object will usually have several `~lsst.pex.config.Field` instances as class attributes. These
+    are used to define most of the base class behavior. Simple derived class should be able to be defined
+    simply by setting those attributes.
 
-    Config also emulates a dict of field name: field value
+    Config implements a mapping API that provides key-value access to fields and `dict`-like methods.
     """
 
     def __iter__(self):
-        """!Iterate over fields
+        """Iterate over fields.
         """
         return self._fields.__iter__()
 
     def keys(self):
-        """!Return the list of field names
+        """Get field names.
+
+        Returns
+        -------
+        names : `list`
+            List of `lsst.pex.config.Field` names.
+
+        See also
+        --------
+        lsst.pex.config.Config.iterkeys
         """
         return list(self._storage.keys())
 
     def values(self):
-        """!Return the list of field values
+        """Get field values.
+
+        Returns
+        -------
+        values : `list`
+            List of field values.
+
+        See also
+        --------
+        lsst.pex.config.Config.itervalues
         """
         return list(self._storage.values())
 
     def items(self):
-        """!Return the list of (field name, field value) pairs
+        """Get configurations as ``(field name, field value)`` pairs.
+
+        Returns
+        -------
+        items : `list`
+            List of tuples for each configuration. Tuple items are:
+
+            - Field name.
+            - Field value.
+
+        See also
+        --------
+        lsst.pex.config.Config.iteritems
         """
         return list(self._storage.items())
 
     def iteritems(self):
-        """!Iterate over (field name, field value) pairs
+        """Iterate over (field name, field value) pairs.
+
+        See also
+        --------
+        lsst.pex.config.Config.items
         """
         return iter(self._storage.items())
 
     def itervalues(self):
-        """!Iterate over field values
+        """Iterate over field values.
+
+        See also
+        --------
+        lsst.pex.config.Config.values
         """
         return iter(self.storage.values())
 
     def iterkeys(self):
-        """!Iterate over field names
+        """Iterate over field names
+
+        See also
+        --------
+        lsst.pex.config.Config.values
         """
         return iter(self.storage.keys())
 
@@ -471,15 +671,14 @@ class Config(with_metaclass(ConfigMeta, object)):
         return self._storage.__contains__(name)
 
     def __new__(cls, *args, **kw):
-        """!Allocate a new Config object.
+        """Allocate a new `lsst.pex.config.Config` object.
 
-        In order to ensure that all Config object are always in a proper
-        state when handed to users or to derived Config classes, some
-        attributes are handled at allocation time rather than at initialization
+        In order to ensure that all Config object are always in a proper state when handed to users or to
+        derived `~lsst.pex.config.Config` classes, some attributes are handled at allocation time rather than
+        at initialization.
 
-        This ensures that even if a derived Config class implements __init__,
-        the author does not need to be concerned about when or even if he
-        should call the base Config.__init__
+        This ensures that even if a derived `~lsst.pex.config.Config` class implements __init__, its author
+        does not need to be concerned about when or even the base ``Config.__init__`` should be called.
         """
         name = kw.pop("__name", None)
         at = kw.pop("__at", getCallStack())
@@ -505,8 +704,8 @@ class Config(with_metaclass(ConfigMeta, object)):
     def __reduce__(self):
         """Reduction for pickling (function with arguments to reproduce).
 
-        We need to condense and reconstitute the Config, since it may contain lambdas
-        (as the 'check' elements) that cannot be pickled.
+        We need to condense and reconstitute the `~lsst.pex.config.Config`, since it may contain lambdas
+        (as the ``check`` elements) that cannot be pickled.
         """
         # The stream must be in characters to match the API but pickle requires bytes
         stream = io.StringIO()
@@ -514,21 +713,29 @@ class Config(with_metaclass(ConfigMeta, object)):
         return (unreduceConfig, (self.__class__, stream.getvalue().encode()))
 
     def setDefaults(self):
-        """
-        Derived config classes that must compute defaults rather than using the
-        Field defaults should do so here.
-        To correctly use inherited defaults, implementations of setDefaults()
-        must call their base class' setDefaults()
+        """Subclass hook for computing defaults.
+
+        Notes
+        -----
+        Derived `~lsst.pex.config.Config` classes that must compute defaults rather than using the
+        `lsst.pex.config.Field`\ s's defaults should do so here. To correctly use inherited defaults,
+        implementations of ``setDefaults`` must call their base class's ``setDefaults``.
         """
         pass
 
     def update(self, **kw):
-        """!Update values specified by the keyword arguments
+        """Update values specified by the keyword arguments.
 
-        @warning The '__at' and '__label' keyword arguments are special internal
-        keywords. They are used to strip out any internal steps from the
-        history tracebacks of the config. Modifying these keywords allows users
-        to lie about a Config's history. Please do not do so!
+        Parameters
+        ----------
+        kw
+            Keywords are configuration field names. Values are configuration field values.
+
+        Notes
+        -----
+        The ``__at`` and ``__label`` keyword arguments are special internal keywords. They are used to strip
+        out any internal steps from the history tracebacks of the config. Do not modify these keywords to
+        subvert a `~lsst.pex.config.Config`\ ’s history.
         """
         at = kw.pop("__at", getCallStack())
         label = kw.pop("__label", "update")
@@ -541,36 +748,63 @@ class Config(with_metaclass(ConfigMeta, object)):
                 raise KeyError("No field of name %s exists in config type %s" % (name, _typeStr(self)))
 
     def load(self, filename, root="config"):
-        """!Modify this config in place by executing the Python code in the named file.
+        """Modify this Config in place by executing the Python code in a configuration file.
 
-        @param[in] filename  name of file containing config override code
-        @param[in] root  name of variable in file that refers to the config being overridden
+        Parameters
+        ----------
+        filename : `str`
+            Name of the configuration file. A configuration file is Python module.
+        root : `str`, optional
+            Name of the variable in file that refers to the config being overridden.
 
-        For example: if the value of root is "config" and the file contains this text:
-        "config.myField = 5" then this config's field "myField" is set to 5.
+            For example, the value of root is ``"config"`` and the file contains::
 
-        @deprecated For purposes of backwards compatibility, older config files that use
-        root="root" instead of root="config" will be loaded with a warning printed to sys.stderr.
-        This feature will be removed at some point.
+                config.myField = 5
+
+            Then this config's field ``"myField"`` is set to ``5``.
+
+            **Deprecated:** For backwards compatibility, older config files that use ``root="root"`` instead
+            of ``root="config"`` will be loaded with a warning printed to `sys.stderr`. This feature will be
+            removed at some point.
+
+        See also
+        --------
+        lsst.pex.config.Config.loadFromStream
+        lsst.pex.config.Config.save
+        lsst.pex.config.Config.saveFromStream
         """
         with open(filename, "r") as f:
             code = compile(f.read(), filename=filename, mode="exec")
             self.loadFromStream(stream=code, root=root)
 
     def loadFromStream(self, stream, root="config", filename=None):
-        """!Modify this config in place by executing the python code in the provided stream.
+        """Modify this Config in place by executing the Python code in the provided stream.
 
-        @param[in] stream  open file object, string or compiled string containing config override code
-        @param[in] root  name of variable in stream that refers to the config being overridden
-        @param[in] filename  name of config override file, or None if unknown or contained
-            in the stream; used for error reporting
+        Parameters
+        ----------
+        stream : file-like object, `str`, or compiled string
+            Stream containing configuration override code.
+        root : `str`, optional
+            Name of the variable in file that refers to the config being overridden.
 
-        For example: if the value of root is "config" and the stream contains this text:
-        "config.myField = 5" then this config's field "myField" is set to 5.
+            For example, the value of root is ``"config"`` and the file contains::
 
-        @deprecated For purposes of backwards compatibility, older config files that use
-        root="root" instead of root="config" will be loaded with a warning printed to sys.stderr.
-        This feature will be removed at some point.
+                config.myField = 5
+
+            Then this config's field ``"myField"`` is set to ``5``.
+
+            **Deprecated:** For backwards compatibility, older config files that use ``root="root"`` instead
+            of ``root="config"`` will be loaded with a warning printed to `sys.stderr`. This feature will be
+            removed at some point.
+        filename : optional
+            Name of the configuration file, or `None` if unknown or contained in the stream. Used for error
+            reporting.
+
+        See also
+        --------
+        lsst.pex.config.Config.load
+        lsst.pex.config.Config.save
+        lsst.pex.config.Config.saveFromStream
         """
         with RecordingImporter() as importer:
             try:
@@ -594,10 +828,21 @@ class Config(with_metaclass(ConfigMeta, object)):
         self._imports.update(importer.getModules())
 
     def save(self, filename, root="config"):
-        """!Save a python script to the named file, which, when loaded, reproduces this Config
+        """Save a Python script to the named file, which, when loaded, reproduces this Config.
 
-        @param[in] filename  name of file to which to write the config
-        @param[in] root  name to use for the root config variable; the same value must be used when loading
+        Parameters
+        ----------
+        filename : `str`
+            Desination filename of this configuration.
+        root
+            Name to use for the root config variable. The same value must be used when loading (see
+            `lsst.pex.config.Config.load`).
+
+        See also
+        --------
+        lsst.pex.config.Config.saveToStream
+        lsst.pex.config.Config.load
+        lsst.pex.config.Config.loadFromStream
         """
         d = os.path.dirname(filename)
         with tempfile.NamedTemporaryFile(mode="w", delete=False, dir=d) as outfile:
@@ -614,10 +859,21 @@ class Config(with_metaclass(ConfigMeta, object)):
             shutil.move(outfile.name, filename)
 
     def saveToStream(self, outfile, root="config"):
-        """!Save a python script to a stream, which, when loaded, reproduces this Config
+        """Save a configuration file to a stream, which, when loaded, reproduces this Config.
 
-        @param outfile [inout] open file object to which to write the config. Accepts strings not bytes.
-        @param root [in] name to use for the root config variable; the same value must be used when loading
+        Parameters
+        ----------
+        outfile : file-like object
+            Destination file object write the config into. Accepts strings not bytes.
+        root
+            Name to use for the root config variable. The same value must be used when loading (see
+            `lsst.pex.config.Config.load`).
+
+        See also
+        --------
+        lsst.pex.config.Config.save
+        lsst.pex.config.Config.load
+        lsst.pex.config.Config.loadFromStream
         """
         tmp = self._name
         self._rename(root)
@@ -634,14 +890,19 @@ class Config(with_metaclass(ConfigMeta, object)):
             self._rename(tmp)
 
     def freeze(self):
-        """!Make this Config and all sub-configs read-only
+        """Make this `~lsst.pex.config.Config` and all subconfigs read-only.
         """
         self._frozen = True
         for field in self._fields.values():
             field.freeze(self)
 
     def _save(self, outfile):
-        """!Save this Config to an open stream object
+        """Save this Config to an open stream object.
+
+        Parameters
+        ----------
+        outfile : file-like object
+            Destination file object write the config into. Accepts strings not bytes.
         """
         for imp in self._imports:
             if imp in sys.modules and sys.modules[imp] is not None:
@@ -650,10 +911,23 @@ class Config(with_metaclass(ConfigMeta, object)):
             field.save(outfile, self)
 
     def toDict(self):
-        """!Return a dict of field name: value
+        """Make a dictionary of field names and their values.
 
-        Correct behavior is dependent on proper implementation of  Field.toDict. If implementing a new
-        Field type, you may need to implement your own toDict method.
+        Returns
+        -------
+        dict_ : `dict`
+            Dictionary with keys that are `~lsst.pex.config.Field` names. Values are `~lsst.pex.config.Field`
+            values.
+
+        Notes
+        -----
+        This method uses the `~lsst.pex.config.Field.toDict` method of individual `lsst.pex.config.Field`\ s.
+        Custom `lsst.pex.config.Field`-types may need to implement a ``toDict`` method for *this* method to
+        work.
+
+        See also
+        --------
+        lsst.pex.config.Field.toDict
         """
         dict_ = {}
         for name, field in self._fields.items():
@@ -661,59 +935,87 @@ class Config(with_metaclass(ConfigMeta, object)):
         return dict_
 
     def _rename(self, name):
-        """!Rename this Config object in its parent config
+        """Rename this Config object in its parent `lsst.pex.config.Config`.
 
-        @param[in] name  new name for this config in its parent config
+        Parameters
+        ----------
+        name : `str`
+            New name for this Config in its parent Config.
 
-        Correct behavior is dependent on proper implementation of Field.rename. If implementing a new
-        Field type, you may need to implement your own rename method.
+        Notes
+        -----
+        This method uses the `~lsst.pex.config.Field.rename` method of individual `lsst.pex.config.Field`\ s.
+        Custom `lsst.pex.config.Field`-types may need to implement a ``rename`` method for *this* method to
+        work.
+
+        See also
+        --------
+        lsst.pex.config.Field.rename
         """
         self._name = name
         for field in self._fields.values():
             field.rename(self)
 
     def validate(self):
-        """!Validate the Config; raise an exception if invalid
+        """Validate the Config, raising an exception if invalid.
 
-        The base class implementation performs type checks on all fields by
-        calling Field.validate().
+        Raises
+        ------
+        lsst.pex.config.FieldValidationError
+            Raised if verification fails.
 
-        Complex single-field validation can be defined by deriving new Field
-        types. As syntactic sugar, some derived Field types are defined in
-        this module which handle recursing into sub-configs
-        (ConfigField, ConfigChoiceField)
+        Notes
+        -----
+        The base class implementation performs type checks on all fields by calling their
+        `~lsst.pex.config.Field.validate` methods.
 
-        Inter-field relationships should only be checked in derived Config
-        classes after calling this method, and base validation is complete
+        Complex single-field validation can be defined by deriving new Field types. For convenience, some
+        derived `lsst.pex.config.Field`-types (`~lsst.pex.config.ConfigField` and
+        `~lsst.pex.config.ConfigChoiceField`) are defined in `lsst.pex.config` that handle recursing into
+        subconfigs.
+
+        Inter-field relationships should only be checked in derived `~lsst.pex.config.Config` classes after
+        calling this method, and base validation is complete.
         """
         for field in self._fields.values():
             field.validate(self)
 
     def formatHistory(self, name, **kwargs):
-        """!Format the specified config field's history to a more human-readable format
+        """Format a configuration field's history to a human-readable format.
 
-        @param[in] name  name of field whose history is wanted
-        @param[in] kwargs  keyword arguments for lsst.pex.config.history.format
-        @return a string containing the formatted history
+        Parameters
+        ----------
+        name : `str`
+            Name of a `~lsst.pex.config.Field`.
+        kwargs
+            Keyword arguments passed to `lsst.pex.config.history.format`.
+
+        Returns
+        -------
+        history : `str`
+            A string containing the formatted history.
+
+        See also
+        --------
+        lsst.pex.config.history.format
         """
         import lsst.pex.config.history as pexHist
         return pexHist.format(self, name, **kwargs)
 
-    """
-    Read-only history property
+    """Read-only history.
     """
     history = property(lambda x: x._history)
 
     def __setattr__(self, attr, value, at=None, label="assignment"):
-        """!Regulate which attributes can be set
+        """Set an attribute.
 
-        Unlike normal python objects, Config objects are locked such
-        that no additional attributes nor properties may be added to them
-        dynamically.
+        Notes
+        -----
+        Unlike normal Python objects, `~lsst.pex.config.Config` objects are locked such that no additional
+        attributes nor properties may be added to them dynamically.
 
-        Although this is not the standard Python behavior, it helps to
-        protect users from accidentally mispelling a field name, or
-        trying to set a non-existent field.
+        Although this is not the standard Python behavior, it helps to protect users from accidentally
+        mispelling a field name, or trying to set a non-existent field.
         """
         if attr in self._fields:
             if at is None:
@@ -764,19 +1066,37 @@ class Config(with_metaclass(ConfigMeta, object)):
         )
 
     def compare(self, other, shortcut=True, rtol=1E-8, atol=1E-8, output=None):
-        """!Compare two Configs for equality; return True if equal
+        """Compare this configuration to another `~lsst.pex.config.Config` for equality.
 
-        If the Configs contain RegistryFields or ConfigChoiceFields, unselected Configs
-        will not be compared.
+        Parameters
+        ----------
+        other : `lsst.pex.config.Config`
+            Other `~lsst.pex.config.Config` object to compare with self.
+        shortcut : `bool`, optional
+            If `True`, return as soon as an inequality is found. Default is `True`.
+        rtol : `float`, optional
+            Relative tolerance for floating point comparisons.
+        atol : `float`, optional
+            Absolute tolerance for floating point comparisons.
+        output : callable, optional
+            A callable that takes a string, used (possibly repeatedly) to report inequalities.
 
-        @param[in] other      Config object to compare with self.
-        @param[in] shortcut   If True, return as soon as an inequality is found.
-        @param[in] rtol       Relative tolerance for floating point comparisons.
-        @param[in] atol       Absolute tolerance for floating point comparisons.
-        @param[in] output     If not None, a callable that takes a string, used (possibly repeatedly)
-                              to report inequalities.
+        Returns
+        -------
+        isEqual : `bool`
+            `True` when the two `lsst.pex.config.Config` instances are equal. `False` if there is an
+            inequality.
 
-        Floating point comparisons are performed by numpy.allclose; refer to that for details.
+        Notes
+        -----
+        If the `~lsst.pex.config.Configs` contain `~lsst.pex.config.RegistryField`\ s or
+        `~lsst.pex.config.ConfigChoiceFields`, unselected Configs will not be compared.
+
+        Floating point comparisons are performed by `numpy.allclose`.
+
+        See also
+        --------
+        lsst.pex.config.compareConfigs
         """
         name1 = self._name if self._name is not None else "config"
         name2 = other._name if other._name is not None else "config"
