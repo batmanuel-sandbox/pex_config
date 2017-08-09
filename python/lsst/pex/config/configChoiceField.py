@@ -33,14 +33,27 @@ __all__ = ["ConfigChoiceField"]
 
 
 class SelectionSet(collections.MutableSet):
-    """
-    Custom set class used to track the selection of multi-select
-    ConfigChoiceField.
+    """Custom set class used to track the selection of multi-select `lsst.pex.config.ConfigChoiceField`\ s.
 
-    This class allows user a multi-select ConfigChoiceField to add/discard
-    items from the set of active configs. Each change to the selection is
-    tracked in the field's history.
+    Parameters
+    ----------
+    dict_ : `dict`
+        Unknown.
+    value
+        Unknown.
+    at : optional
+        Unknown.
+    label : `str`, optional
+        Unknown.
+    setHistory : `bool`, optional
+        Unknown.
+
+    Notes
+    -----
+    This class allows a user of a multi-select `~lsst.pex.config.ConfigChoiceField` to add or discard
+    items from the set of active configs. Each change to the selection is tracked in the field's history.
     """
+
     def __init__(self, dict_, value, at=None, label="assignment", setHistory=True):
         if at is None:
             at = getCallStack()
@@ -65,6 +78,8 @@ class SelectionSet(collections.MutableSet):
             self.__history.append(("Set selection to %s" % self, at, label))
 
     def add(self, value, at=None):
+        """Add a value to the selected set.
+        """
         if self._config._frozen:
             raise FieldValidationError(self._field, self._config,
                                        "Cannot modify a frozen Config")
@@ -80,6 +95,8 @@ class SelectionSet(collections.MutableSet):
         self._set.add(value)
 
     def discard(self, value, at=None):
+        """Discard a value from the selected set.
+        """
         if self._config._frozen:
             raise FieldValidationError(self._field, self._config,
                                        "Cannot modify a frozen Config")
@@ -110,10 +127,15 @@ class SelectionSet(collections.MutableSet):
 
 
 class ConfigInstanceDict(collections.Mapping):
-    """A dict of instantiated configs, used to populate a ConfigChoiceField.
+    """Dictionary of instantiated configs, used to populate a `~lsst.pex.config.ConfigChoiceField`.
 
-    typemap must support the following:
-    - typemap[name]: return the config class associated with the given name
+    Parameters
+    ----------
+    config : `lsst.pex.config.Config`
+        Configuration instance.
+    field : `lsst.pex.config.Field`-type
+        Configuration field. Note that the `lsst.pex.config.Field.fieldmap` attribute must provide key-based
+        access to configuration classes, (that is, ``typemap[name]`).
     """
     def __init__(self, config, field):
         collections.Mapping.__init__(self)
@@ -188,15 +210,13 @@ class ConfigInstanceDict(collections.Mapping):
                                        "Multi-selection field has no attribute 'name'")
         self._selection = None
 
-    """
-    In a multi-selection ConfigInstanceDict, list of names of active items
-    Disabled In a single-selection _Regsitry)
+    """List of names of active items in a multi-selection ``ConfigInstanceDict``. Disabled in
+    a single-selection ``_Registry``; use the `name` attribute instead.
     """
     names = property(_getNames, _setNames, _delNames)
 
-    """
-    In a single-selection ConfigInstanceDict, name of the active item
-    Disabled In a multi-selection _Regsitry)
+    """Name of the active item in a single-selection ``ConfigInstanceDict``. Disabled in a multi-selection
+    ``_Registry``; use the ``names`` attribute instead.
     """
     name = property(_getName, _setName, _delName)
 
@@ -209,10 +229,10 @@ class ConfigInstanceDict(collections.Mapping):
         else:
             return self[self._selection]
 
-    """
-    Readonly shortcut to access the selected item(s)
-    for multi-selection, this is equivalent to: [self[name] for name in self.names]
-    for single-selection, this is equivalent to: self[name]
+    """The selected items.
+
+    For multi-selection, this is equivalent to: ``[self[name] for name in self.names]``.
+    For single-selection, this is equivalent to: ``self[name]``.
     """
     active = property(_getActive)
 
@@ -279,8 +299,19 @@ class ConfigInstanceDict(collections.Mapping):
 
 
 class ConfigChoiceField(Field):
-    """
-    ConfigChoiceFields allow the config to choose from a set of possible Config types.
+    """Configuration field that provides a choice from a set of possible `~lsst.pex.config.Config` types.
+
+    Parameters
+    ----------
+    doc : `str`
+        Documentation string for the field.
+    typemap : `dict`-like
+        A mapping between keys and `~lsst.pex.config.Config`-types as values. See *Example* for details.
+    default : `str`, optional
+        Default configuration name.
+    optional : `bool`, optional
+        When `False`, `lsst.pex.config.Config.validate` will fail if the field's value is `None`.
+
     The set of allowable types is given by the typemap argument to the constructor
 
     The typemap object must implement typemap[name], which must return a Config subclass.
