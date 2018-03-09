@@ -142,14 +142,26 @@ class ConfigurableInstance(object):
 
 
 class ConfigurableField(Field):
-    """
-    A variant of a ConfigField which has a known configurable target
+    """A configuration field that has a target and can be retargeted towards a different configurable.
 
-    Behaves just like a ConfigField except that it can be 'retargeted' to point
-    at a different configurable. Further you can 'apply' to construct a fully
-    configured configurable.
+    Parameters
+    ----------
+    doc : `str`
+        Documentation string that describes the configuration field.
+    target : callable
+        The configurable target. Must be callable, and the first parameter will be the value of this field.
+    ConfigClass : optional
+        The class of `lsst.pex.config.Config` expected as the ``target``. If ``ConfigClass`` is unset then
+        ``target.ConfigClass`` will be used. One of ``target.ConfigClass`` or ``ConfigClass`` **must**
+        provide class information.
+    default : optional
+        Unknown.
+    check : optional
+        Unknown.
 
-
+    Notes
+    -----
+    You can use the `apply` method to construct a fully configured configurable.
     """
 
     def validateTarget(self, target, ConfigClass):
@@ -169,12 +181,6 @@ class ConfigurableField(Field):
         return ConfigClass
 
     def __init__(self, doc, target, ConfigClass=None, default=None, check=None):
-        """
-        @param target is the configurable target. Must be callable, and the first
-                parameter will be the value of this field
-        @param ConfigClass is the class of Config object expected by the target.
-                If not provided by target.ConfigClass it must be provided explicitly in this argument
-        """
         ConfigClass = self.validateTarget(target, ConfigClass)
 
         if default is None:
@@ -271,17 +277,33 @@ class ConfigurableField(Field):
                           default=copy.deepcopy(self.default))
 
     def _compare(self, instance1, instance2, shortcut, rtol, atol, output):
-        """Helper function for Config.compare; used to compare two fields for equality.
+        """Compare two fields for equality.
 
-        @param[in] instance1  LHS Config instance to compare.
-        @param[in] instance2  RHS Config instance to compare.
-        @param[in] shortcut   If True, return as soon as an inequality is found.
-        @param[in] rtol       Relative tolerance for floating point comparisons.
-        @param[in] atol       Absolute tolerance for floating point comparisons.
-        @param[in] output     If not None, a callable that takes a string, used (possibly repeatedly)
-                              to report inequalities.
+        Used by `lsst.pex.ConfigDictField.compare`.
 
-        Floating point comparisons are performed by numpy.allclose; refer to that for details.
+        Parameters
+        ----------
+        instance1 : `lsst.pex.config.Config`
+            Left-hand side config instance to compare.
+        instance2 : `lsst.pex.config.Config`
+            Right-hand side config instance to compare.
+        shortcut : `bool`
+            If `True`, this function returns as soon as an inequality if found.
+        rtol : `float`
+            Relative tolerance for floating point comparisons.
+        atol : `float`
+            Absolute tolerance for floating point comparisons.
+        output : callable
+            A callable that takes a string, used (possibly repeatedly) to report inequalities.
+
+        Returns
+        -------
+        isEqual : bool
+            `True` if the fields are equal, `False` otherwise.
+
+        Notes
+        -----
+        Floating point comparisons are performed by `numpy.allclose`.
         """
         c1 = getattr(instance1, self.name)._value
         c2 = getattr(instance2, self.name)._value
