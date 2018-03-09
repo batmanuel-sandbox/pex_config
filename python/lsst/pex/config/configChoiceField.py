@@ -312,41 +312,42 @@ class ConfigChoiceField(Field):
     optional : `bool`, optional
         When `False`, `lsst.pex.config.Config.validate` will fail if the field's value is `None`.
 
-    The set of allowable types is given by the typemap argument to the constructor
-
-    The typemap object must implement typemap[name], which must return a Config subclass.
-
-    While the typemap is shared by all instances of the field, each instance of
-    the field has its own instance of a particular sub-config type
+    Examples
+    --------
+    While the ``typemap`` is shared by all instances of the field, each instance of the field has its own
+    instance of a particular sub-config type.
 
     For example:
 
-      class AaaConfig(Config):
-        somefield = Field(int, "...")
-      TYPEMAP = {"A", AaaConfig}
-      class MyConfig(Config):
-          choice = ConfigChoiceField("doc for choice", TYPEMAP)
-
-      instance = MyConfig()
-      instance.choice['AAA'].somefield = 5
-      instance.choice = "AAA"
+    >>> class AaaConfig(Config):
+    >>>      somefield = Field(int, "...")
+    >>> TYPEMAP = {"A", AaaConfig}
+    >>> class MyConfig(Config):
+    >>>     choice = ConfigChoiceField("doc for choice", TYPEMAP)
+    >>>
+    >>> instance = MyConfig()
+    >>> instance.choice['AAA'].somefield = 5
+    >>> instance.choice = "AAA"
 
     Alternatively, the last line can be written:
-      instance.choice.name = "AAA"
 
-    Validation of this field is performed only the "active" selection.
-    If active is None and the field is not optional, validation will fail.
+    >>> instance.choice.name = "AAA"
 
-    ConfigChoiceFields can allow single selections or multiple selections.
-    Single selection fields set selection through property name, and
-    multi-selection fields use the property names.
+    Validation of this field is performed only the "active" selection. If active is None and the field is not
+    optional, validation will fail.
 
-    ConfigChoiceFields also allow multiple values of the same type:
-      TYPEMAP["CCC"] = AaaConfig
-      TYPEMAP["BBB"] = AaaConfig
+    ``ConfigChoiceField``\ s can allow single selections or multiple selections. Single selection fields set
+    selection through property name, and multi-selection fields use the property names.
 
-    When saving a config with a ConfigChoiceField, the entire set is saved, as well as the active selection
+    ``ConfigChoiceFields`` also allow multiple values of the same type:
+
+    >>> TYPEMAP["CCC"] = AaaConfig
+    >>> TYPEMAP["BBB"] = AaaConfig
+
+    When saving a configuration with a ConfigChoiceField, the entire set is saved, as well as the active
+    selection.
     """
+
     instanceDictClass = ConfigInstanceDict
 
     def __init__(self, doc, typemap, default=None, optional=False, multi=False):
@@ -447,19 +448,35 @@ class ConfigChoiceField(Field):
         return other
 
     def _compare(self, instance1, instance2, shortcut, rtol, atol, output):
-        """Helper function for Config.compare; used to compare two fields for equality.
+        """Compare two fields for equality.
 
-        Only the selected config(s) are compared, as the parameters of any others do not matter.
+        Used by `lsst.pex.ConfigChoiceField.compare`.
 
-        @param[in] instance1  LHS Config instance to compare.
-        @param[in] instance2  RHS Config instance to compare.
-        @param[in] shortcut   If True, return as soon as an inequality is found.
-        @param[in] rtol       Relative tolerance for floating point comparisons.
-        @param[in] atol       Absolute tolerance for floating point comparisons.
-        @param[in] output     If not None, a callable that takes a string, used (possibly repeatedly)
-                              to report inequalities.
+        Parameters
+        ----------
+        instance1 : `lsst.pex.config.Config`
+            Left-hand side config instance to compare.
+        instance2 : `lsst.pex.config.Config`
+            Right-hand side config instance to compare.
+        shortcut : `bool`
+            If `True`, this function returns as soon as an inequality if found.
+        rtol : `float`
+            Relative tolerance for floating point comparisons.
+        atol : `float`
+            Absolute tolerance for floating point comparisons.
+        output : callable
+            A callable that takes a string, used (possibly repeatedly) to report inequalities.
 
-        Floating point comparisons are performed by numpy.allclose; refer to that for details.
+        Returns
+        -------
+        isEqual : bool
+            `True` if the fields are equal, `False` otherwise.
+
+        Notes
+        -----
+        Only the selected configurations are compared, as the parameters of any others do not matter.
+
+        Floating point comparisons are performed by `numpy.allclose`.
         """
         d1 = getattr(instance1, self.name)
         d2 = getattr(instance2, self.name)
