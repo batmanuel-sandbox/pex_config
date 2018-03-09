@@ -55,7 +55,7 @@ class Dict(collections.MutableMapping):
             self._history.append((dict(self._dict), at, label))
 
     """
-    Read-only history
+    History (read-only).
     """
     history = property(lambda x: x._history)
 
@@ -139,8 +139,7 @@ class Dict(collections.MutableMapping):
 
 
 class DictField(Field):
-    """
-    Defines a field which is a mapping of values
+    """Configuration field that is a mapping of values.
 
     Both key and item types are restricted to builtin POD types:
         (int, float, complex, bool, str)
@@ -149,14 +148,35 @@ class DictField(Field):
         dictCheck: used to validate the dict as a whole, and
         itemCheck: used to validate each item individually
 
-    For example to define a field which is a mapping from names to int values:
 
-    class MyConfig(Config):
-        field = DictField(
-                doc="example string-to-int mapping field",
-                keytype=str, itemtype=int,
-                default= {})
+    Parameters
+    ----------
+    doc : `str`
+        Documentation string that describes the configuration field.
+    keytype : {`int`, `float`, `complex`, `bool`, `str`}
+        Type of the mapping keys.
+    itemtype : {`int`, `float`, `complex`, `bool`, `str`}
+        Type of the mapping values.
+    default : optional
+        Description
+    optional : bool, optional
+        Description
+    dictCheck : callable
+        Function that validates the dictionary as a whole.
+    itemCheck : callable
+        Function that validates indivual mapping values.
+
+    Examples
+    --------
+    This field maps from `str` names to `int` values:
+
+    >>> class MyConfig(Config):
+    >>>     field = DictField(
+    >>>             doc="example string-to-int mapping field",
+    >>>             keytype=str, itemtype=int,
+    >>>             default= {})
     """
+
     DictClass = Dict
 
     def __init__(self, doc, keytype, itemtype, default=None, optional=False, dictCheck=None, itemCheck=None):
@@ -180,8 +200,7 @@ class DictField(Field):
         self.itemCheck = itemCheck
 
     def validate(self, instance):
-        """
-        DictField validation ensures that non-optional fields are not None,
+        """DictField validation ensures that non-optional fields are not None,
             and that non-None values comply with dictCheck.
         Individual Item checks are applied at set time and are not re-checked.
         """
@@ -213,17 +232,33 @@ class DictField(Field):
         return dict(value) if value is not None else None
 
     def _compare(self, instance1, instance2, shortcut, rtol, atol, output):
-        """Helper function for Config.compare; used to compare two fields for equality.
+        """Compare two fields for equality.
 
-        @param[in] instance1  LHS Config instance to compare.
-        @param[in] instance2  RHS Config instance to compare.
-        @param[in] shortcut   If True, return as soon as an inequality is found.
-        @param[in] rtol       Relative tolerance for floating point comparisons.
-        @param[in] atol       Absolute tolerance for floating point comparisons.
-        @param[in] output     If not None, a callable that takes a string, used (possibly repeatedly)
-                              to report inequalities.
+        Used by `lsst.pex.ConfigDictField.compare`.
 
-        Floating point comparisons are performed by numpy.allclose; refer to that for details.
+        Parameters
+        ----------
+        instance1 : `lsst.pex.config.Config`
+            Left-hand side config instance to compare.
+        instance2 : `lsst.pex.config.Config`
+            Right-hand side config instance to compare.
+        shortcut : `bool`
+            If `True`, this function returns as soon as an inequality if found.
+        rtol : `float`
+            Relative tolerance for floating point comparisons.
+        atol : `float`
+            Absolute tolerance for floating point comparisons.
+        output : callable
+            A callable that takes a string, used (possibly repeatedly) to report inequalities.
+
+        Returns
+        -------
+        isEqual : bool
+            `True` if the fields are equal, `False` otherwise.
+
+        Notes
+        -----
+        Floating point comparisons are performed by `numpy.allclose`.
         """
         d1 = getattr(instance1, self.name)
         d2 = getattr(instance2, self.name)
