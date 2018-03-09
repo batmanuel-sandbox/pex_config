@@ -29,22 +29,31 @@ __all__ = ["ConfigField"]
 
 
 class ConfigField(Field):
-    """
-    Defines a field which is itself a Config.
+    """Configuration field that takes a `lsst.pex.config.Config`-type as a value.
 
-    The behavior of this type of field is much like that of the base Field type.
+    Parameters
+    ----------
+    doc : `str`
+        Documentation string that describes the configuration field.
+    dtype : `lsst.pex.config.Config`-type
+        The type of the field, which must be a subclass of `lsst.pex.config.Config`.
+    default : optional
+        Description
+        If default=None, the field will default to a default-constructed
+        instance of dtype.
+        Additionally, to allow for fewer deep-copies, assigning an instance of
+        ConfigField to dtype itself, is considered equivalent to assigning a
+        default-constructed sub-config. This means that the argument default can be
+        dtype, as well as an instance of dtype.
+        FIXME
+    check : optional
+        Description
 
-    Note that dtype must be a subclass of Config.
+    Notes
+    -----
+    The behavior of this type of field is much like that of the base `Field` type.
 
-    If default=None, the field will default to a default-constructed
-    instance of dtype.
-
-    Additionally, to allow for fewer deep-copies, assigning an instance of
-    ConfigField to dtype itself, is considered equivalent to assigning a
-    default-constructed sub-config. This means that the argument default can be
-    dtype, as well as an instance of dtype.
-
-    Assigning to ConfigField will update all of the fields in the config.
+    Assigning to ``ConfigField`` will update all of the fields in the configuration.
     """
 
     def __init__(self, doc, dtype, default=None, check=None):
@@ -121,17 +130,33 @@ class ConfigField(Field):
             raise FieldValidationError(self, instance, msg)
 
     def _compare(self, instance1, instance2, shortcut, rtol, atol, output):
-        """Helper function for Config.compare; used to compare two fields for equality.
+        """Compare two fields for equality.
 
-        @param[in] instance1  LHS Config instance to compare.
-        @param[in] instance2  RHS Config instance to compare.
-        @param[in] shortcut   If True, return as soon as an inequality is found.
-        @param[in] rtol       Relative tolerance for floating point comparisons.
-        @param[in] atol       Absolute tolerance for floating point comparisons.
-        @param[in] output     If not None, a callable that takes a string, used (possibly repeatedly)
-                              to report inequalities.
+        Used by `ConfigField.compare`.
 
-        Floating point comparisons are performed by numpy.allclose; refer to that for details.
+        Parameters
+        ----------
+        instance1 : `lsst.pex.config.Config`
+            Left-hand side config instance to compare.
+        instance2 : `lsst.pex.config.Config`
+            Right-hand side config instance to compare.
+        shortcut : `bool`
+            If `True`, this function returns as soon as an inequality if found.
+        rtol : `float`
+            Relative tolerance for floating point comparisons.
+        atol : `float`
+            Absolute tolerance for floating point comparisons.
+        output : callable
+            A callable that takes a string, used (possibly repeatedly) to report inequalities.
+
+        Returns
+        -------
+        isEqual : bool
+            `True` if the fields are equal, `False` otherwise.
+
+        Notes
+        -----
+        Floating point comparisons are performed by `numpy.allclose`.
         """
         c1 = getattr(instance1, self.name)
         c2 = getattr(instance2, self.name)
