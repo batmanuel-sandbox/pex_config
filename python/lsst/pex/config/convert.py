@@ -24,6 +24,19 @@ import lsst.daf.base
 
 
 def makePropertySet(config):
+    """Convert a configuration into a `lsst.daf.base.PropertySet`.
+
+    Parameters
+    ----------
+    config : `lsst.pex.config.Config`-type
+        Configuration instance.
+
+    Returns
+    -------
+    ps : `lsst.daf.base.PropertySet`
+        A `~lsst.daf.base.PropertySet` that is equivalent to the ``config`` instance. If ``config`` is `None`
+        then ``ps`` is also `None`.
+    """
     def _helper(ps, prefix, dict_):
         for k, v in dict_.items():
             name = prefix + "." + k if prefix is not None else k
@@ -41,6 +54,19 @@ def makePropertySet(config):
 
 
 def makePolicy(config):
+    """Convert a configuraion into a `lsst.pex.policy.Policy`.
+
+    Parameters
+    ----------
+    config : `lsst.pex.config.Config`-type
+        Configuration instance.
+
+    Returns
+    -------
+    p : `lsst.pex.policy.Policy`
+        A `~lsst.pex.policy.Policy` that is equivalent to the ``config`` instance. If ``config`` is `None`
+        then ``ps`` is also `None`.
+    """
     def _helper(dict_):
         p = lsst.pex.policy.Policy()
         for k, v in dict_.items():
