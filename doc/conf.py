@@ -10,4 +10,4 @@ import lsst.pex.config
 _g = globals()
 _g.update(build_package_configs(
     project_name='pex_config',
-    version=lsst.pex.config..version.__version__))
+    version=lsst.pex.config.version.__version__))
