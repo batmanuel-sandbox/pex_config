@@ -31,11 +31,15 @@ from .callStack import getCallStack, getStackFrame
 
 
 class ConfigurableInstance(object):
+
     def __initValue(self, at, label):
-        """
-        if field.default is an instance of ConfigClass, custom construct
-        _value with the correct values from default.
-        otherwise call ConfigClass constructor
+        """Construct value of field.
+
+        Notes
+        -----
+        If field.default is an instance of `lsst.pex.config.ConfigClass`,
+        custom construct ``_value`` with the correct values from default.
+        Otherwise, call ``ConfigClass`` constructor
         """
         name = _joinNamePath(self._config._name, self._field.name)
         if type(self._field.default) == self.ConfigClass:
@@ -61,31 +65,33 @@ class ConfigurableInstance(object):
         history = config._history.setdefault(field.name, [])
         history.append(("Targeted and initialized from defaults", at, label))
 
-    """
-    Read-only access to the targeted configurable
-    """
     target = property(lambda x: x._target)
+    """The targeted configurable (read-only).
     """
-    Read-only access to the ConfigClass
-    """
-    ConfigClass = property(lambda x: x._ConfigClass)
 
+    ConfigClass = property(lambda x: x._ConfigClass)
+    """The configuration class (, read-only)
     """
-    Read-only access to the ConfigClass instance
-    """
+
     value = property(lambda x: x._value)
+    """The `ConfigClass` instance (`lsst.pex.config.ConfigClass`-type,
+    read-only).
+    """
 
     def apply(self, *args, **kw):
-        """
-        Call the confirurable.
-        With argument config=self.value along with any positional and kw args
+        """Call the configurable.
+
+        Notes
+        -----
+        In addition to the user-provided positional and keyword arguments,
+        the configurable is also provided a keyword argument ``config`` with
+        the value of `ConfigurableInstance.value`.
         """
         return self.target(*args, config=self.value, **kw)
 
-    """
-    Target a new configurable and ConfigClass
-    """
     def retarget(self, target, ConfigClass=None, at=None, label="retarget"):
+        """Target a new configurable and ConfigClass
+        """
         if self._config._frozen:
             raise FieldValidationError(self._field, self._config, "Cannot modify a frozen Config")
 
@@ -109,8 +115,8 @@ class ConfigurableInstance(object):
         return getattr(self._value, name)
 
     def __setattr__(self, name, value, at=None, label="assignment"):
-        """
-        Pretend to be an isntance of  ConfigClass.
+        """Pretend to be an isntance of  ConfigClass.
+
         Attributes defined by ConfigurableInstance will shadow those defined in ConfigClass
         """
         if self._config._frozen:
