@@ -11,4 +11,18 @@ lsst.pex.config
 Python API reference
 ====================
 
-.. automodapi:: lsst.pex.config
+.. automodapi:: lsst.pex.config.callStack
+
+.. automodapi:: lsst.pex.config.choiceField
+
+.. automodapi:: lsst.pex.config.comparison
+
+.. automodapi:: lsst.pex.config.config
+
+.. automodapi:: lsst.pex.config.configChoiceField
+
+.. automodapi:: lsst.pex.config.configDictField
+
+.. automodapi:: lsst.pex.config.configField
+
+.. automodapi:: lsst.pex.config.configurableField
