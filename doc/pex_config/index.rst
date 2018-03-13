@@ -1,10 +1,11 @@
-.. _{{ cookiecutter.package_name }}-package:
+.. _pex_config-package:
 
 .. Title is the EUPS package name
 
-{{ "#" * cookiecutter.package_name|length }}
-{{ cookiecutter.package_name }}
-{{ "#" * cookiecutter.package_name|length }}
+
+##########
+pex_config
+##########
 
 .. Sentence/short paragraph describing what the package is for.
 
